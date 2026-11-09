@@ -291,7 +291,7 @@ Reconcile the full catalog, menu/provider inventory, configs, plugins, service i
 | P2 | Built, verified nested | Power profiles and language await a real session |
 | P3 | Built, display recovery verified nested | Real monitors, sound, Bluetooth, and Wi-Fi need real hardware; the Arrangement editor stays locked per this gate until `selftest display` passes on the machine |
 | P4 | Built | Long-running work stays in Omarchy's terminal flows, which own their status and cancellation; this app waits for pacman's lock rather than tracking jobs |
-| P5 | Built, except what needs a person or hardware | Zero unclassified entries, ledger, package lifecycle, upgrade quarantine, and accessibility tree are done. Open: first run on a real session, a screen reader speaking, other hardware profiles, native-speaker review, and translated strings for 47 languages |
+| P5 | Built, except what needs a person or hardware | Zero unclassified entries, ledger, package lifecycle, upgrade quarantine, and accessibility tree are done. Open: first run on a real session, a screen reader speaking, other hardware profiles, native-speaker review, and translated strings for 46 languages |
 
 ### First implementation work package
 
