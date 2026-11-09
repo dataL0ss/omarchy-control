@@ -811,6 +811,470 @@
   "step": 0.05
  },
  {
+  "id": "appearance.blur.status",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur",
+  "type": "status",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Where see-through surfaces blur what is behind them.",
+  "keywords": [
+   "blur",
+   "frosted",
+   "frosted glass",
+   "glass",
+   "glassy",
+   "acrylic",
+   "see through",
+   "translucent"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blurstatus"
+  },
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "map": {
+   "windows": "Behind Glassy windows and menus",
+   "bar": "Behind the bar",
+   "on": "On",
+   "off": "Off"
+  },
+  "tones": {
+   "windows": "good",
+   "bar": "good",
+   "on": "good",
+   "off": "muted"
+  },
+  "link": {
+   "label": "Bar background",
+   "page": "desktop",
+   "focus": "desktop.bar.background"
+  }
+ },
+ {
+  "id": "appearance.blur.strength",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur strength",
+  "type": "choice",
+  "domain": "C03",
+  "integration": "native",
+  "description": "How strongly what is behind is blurred.",
+  "keywords": [
+   "blur amount",
+   "blur radius",
+   "frosted",
+   "glass",
+   "passes"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "base": [
+    "decoration",
+    "blur"
+   ],
+   "keys": [
+    "size",
+    "passes"
+   ],
+   "presets": {
+    "light": {
+     "size": 3,
+     "passes": 1
+    },
+    "omarchy": {},
+    "medium": {
+     "size": 6,
+     "passes": 2
+    },
+    "strong": {
+     "size": 6,
+     "passes": 3
+    },
+    "strongest": {
+     "size": 8,
+     "passes": 4
+    }
+   }
+  },
+  "choices": [
+   {
+    "value": "light",
+    "label": "Light"
+   },
+   {
+    "value": "omarchy",
+    "label": "Omarchy"
+   },
+   {
+    "value": "medium",
+    "label": "Medium"
+   },
+   {
+    "value": "strong",
+    "label": "Strong"
+   },
+   {
+    "value": "strongest",
+    "label": "Very strong"
+   }
+  ],
+  "discloses": [
+   "appearance.blur.size",
+   "appearance.blur.passes"
+  ],
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true
+ },
+ {
+  "id": "appearance.blur.size",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur radius",
+  "type": "int",
+  "domain": "C03",
+  "integration": "native",
+  "description": "How far each pass spreads.",
+  "keywords": [
+   "blur size",
+   "blur strength"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "size"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 1,
+  "max": 20,
+  "step": 1,
+  "unit": "px"
+ },
+ {
+  "id": "appearance.blur.passes",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur passes",
+  "type": "int",
+  "domain": "C03",
+  "integration": "native",
+  "description": "More passes are smoother and blurrier, and cost more GPU time.",
+  "keywords": [
+   "blur quality",
+   "blur strength"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "passes"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 1,
+  "max": 4,
+  "step": 1
+ },
+ {
+  "id": "appearance.blur.brightness",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur brightness",
+  "type": "float",
+  "domain": "C03",
+  "integration": "native",
+  "description": "How light the blurred background is.",
+  "keywords": [
+   "blur",
+   "darken",
+   "lighten"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "brightness"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 0,
+  "max": 2,
+  "step": 0.05
+ },
+ {
+  "id": "appearance.blur.contrast",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur contrast",
+  "type": "float",
+  "domain": "C03",
+  "integration": "native",
+  "description": "How far light and dark areas stand apart.",
+  "keywords": [
+   "blur"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "contrast"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 0,
+  "max": 2,
+  "step": 0.05
+ },
+ {
+  "id": "appearance.blur.vibrancy",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Color boost",
+  "type": "float",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Makes blurred colors richer.",
+  "keywords": [
+   "vibrancy",
+   "saturation",
+   "blur colors"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "vibrancy"
+   ],
+   "also": [
+    [
+     "decoration",
+     "blur",
+     "vibrancy_darkness"
+    ]
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 0,
+  "max": 1,
+  "step": 0.05
+ },
+ {
+  "id": "appearance.blur.noise",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Grain",
+  "type": "float",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Fine grain over the blur, which hides banding.",
+  "keywords": [
+   "noise",
+   "blur grain",
+   "banding"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "noise"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true,
+  "min": 0,
+  "max": 0.2,
+  "step": 0.01
+ },
+ {
+  "id": "appearance.blur.popups",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur menus and popups",
+  "type": "toggle",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Right-click menus and tooltips.",
+  "keywords": [
+   "context menu blur",
+   "tooltip blur"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "popups"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true
+ },
+ {
+  "id": "appearance.blur.special",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Blur behind the scratchpad",
+  "type": "toggle",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Costs more GPU time.",
+  "keywords": [
+   "special workspace",
+   "scratchpad"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "special"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true
+ },
+ {
+  "id": "appearance.blur.xray",
+  "page": "appearance",
+  "section": "Blur",
+  "label": "Floating windows show only the wallpaper",
+  "type": "toggle",
+  "domain": "C03",
+  "integration": "native",
+  "description": "Cheaper. What is under a floating window is not blurred into it.",
+  "keywords": [
+   "xray",
+   "blur performance"
+  ],
+  "sources": [],
+  "read": {
+   "kind": "blur"
+  },
+  "write": {
+   "kind": "hypr",
+   "slot": "blur",
+   "path": [
+    "decoration",
+    "blur",
+    "xray"
+   ]
+  },
+  "recovery": "auto-undo",
+  "requiresCaps": [
+   "hyprland"
+  ],
+  "scope": "per-user",
+  "reloads": "Reloads Hyprland's configuration.",
+  "owned": true
+ },
+ {
   "id": "appearance.plymouth",
   "page": "appearance",
   "section": "Boot and unlock",

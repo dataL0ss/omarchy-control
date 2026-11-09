@@ -74,6 +74,30 @@ cat >"$H/.config/omarchy/shell.json" <<'T'
 }
 T
 cp "$H/.config/omarchy/shell.json" "$ROOT/omarchy/config/omarchy/shell.json"
+# Omarchy's glass, as Glassy windows and the Glassy bar load it.
+mkdir -p "$ROOT/omarchy/default/hypr"
+cat >"$ROOT/omarchy/default/hypr/glass.lua" <<'T'
+return function()
+  hl.config({
+    decoration = {
+      blur = {
+        enabled = true,
+        size = 4,
+        passes = 2,
+        new_optimizations = true,
+        xray = false,
+        contrast = 1.0,
+        brightness = 0.75,
+        noise = 0.01,
+        vibrancy = 0.35,
+        vibrancy_darkness = 0.35,
+        popups = true,
+        special = true,
+      },
+    },
+  })
+end
+T
 printf -- 'dofile("x")\nrequire("default.hypr.omarchy")\nrequire("hypr.monitors")\nrequire("hypr.autostart")\nrequire("default.hypr.toggles")\n' >"$H/.config/hypr/hyprland.lua"
 printf '{"en":{"name":"English","englishName":"English","formatLocale":"en-US"},"da":{"name":"Dansk","englishName":"Danish","formatLocale":"da-DK"},"ar":{"name":"العربية","englishName":"Arabic","formatLocale":"ar-AE"},"de":{"name":"Deutsch","englishName":"German","formatLocale":"de-DE"}}\n' >"$ROOT/omarchy/default/i18n/locales.json"
 printf '[Desktop Entry]\nType=Application\nName=Sync Client\nComment=Keeps a folder in sync\nExec=sync-client\n' >"$H/.config/autostart/sync-client.desktop"

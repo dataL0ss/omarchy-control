@@ -1,7 +1,7 @@
 {
     "claimedCommands": 301,
     "claimedMenu": 356,
-    "entries": 502,
+    "entries": 513,
     "excludedCommands": 132,
     "excludedMenu": 0,
     "exclusions": {
@@ -854,6 +854,270 @@
             ],
             "supported_versions": "omarchy 4.5.x",
             "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-06 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "",
+            "domain": "C03",
+            "id": "appearance.blur.status",
+            "implementation_status": "implemented",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blurstatus",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur",
+                "blur",
+                "frosted",
+                "frosted glass",
+                "glass",
+                "glassy",
+                "acrylic",
+                "see through",
+                "translucent"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "fixture-tests",
+            "write_or_launch_method": "none"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.strength",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur strength",
+                "blur amount",
+                "blur radius",
+                "frosted",
+                "glass",
+                "passes"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.size",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur radius",
+                "blur size",
+                "blur strength"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.passes",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur passes",
+                "blur quality",
+                "blur strength"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.brightness",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur brightness",
+                "blur",
+                "darken",
+                "lighten"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.contrast",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur contrast",
+                "blur"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.vibrancy",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Color boost",
+                "vibrancy",
+                "saturation",
+                "blur colors"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.noise",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Grain",
+                "noise",
+                "blur grain",
+                "banding"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.popups",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur menus and popups",
+                "context menu blur",
+                "tooltip blur"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.special",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Blur behind the scratchpad",
+                "special workspace",
+                "scratchpad"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+            "write_or_launch_method": "hypr"
+        },
+        {
+            "applicable_capability": [
+                "hyprland"
+            ],
+            "apply_restart_semantics": "Reloads Hyprland's configuration.",
+            "domain": "C03",
+            "id": "appearance.blur.xray",
+            "implementation_status": "verified",
+            "integration_mode": "native",
+            "known_limitation": "",
+            "read_method": "blur",
+            "recovery_class": "auto-undo",
+            "searchable_labels": [
+                "Floating windows show only the wallpaper",
+                "xray",
+                "blur performance"
+            ],
+            "source_references": [
+            ],
+            "supported_versions": "omarchy 4.5.x",
+            "validation_evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
             "write_or_launch_method": "hypr"
         },
         {
@@ -12055,7 +12319,7 @@
     "modes": {
         "advanced-config": 22,
         "external-helper": 22,
-        "native": 102,
+        "native": 113,
         "omarchy-panel": 22,
         "omarchy-wizard": 334
     },

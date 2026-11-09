@@ -437,9 +437,20 @@ void Backend::handleResult(const QString &id, const CatalogEntry *entry, const T
     }
     refresh(id);
     m_core->capabilities.scanFiles();
+    refreshRelated(id);
+}
+
+void Backend::refreshRelated(const QString &id) {
     // A display setting moves what the arrangement shows.
     if (id.startsWith(QLatin1String("displays.")))
         m_displays.refresh();
+    // Blur rows share their file and their strength is made of two of them, and the
+    // three settings that switch blur on and off change what each of them shows.
+    static const QStringList blurSwitches{"appearance.transparency", "desktop.bar.background", "appearance.animations"};
+    if (id.startsWith(QLatin1String("appearance.blur.")) || blurSwitches.contains(id))
+        for (const auto &other : m_core->catalog.entries())
+            if (other.id.startsWith(QLatin1String("appearance.blur.")) && other.id != id)
+                refresh(other.id);
 }
 
 void Backend::commit(const QString &id, const QString &value) {
@@ -469,8 +480,10 @@ void Backend::undo(const QString &transactionId) {
             emit toast(tr("Undid %1").arg(QCoreApplication::translate("catalog", tx.label.toUtf8().constData())), "ok");
         else
             emit toast(tx.message, "error");
-        if (!tx.settingId.isEmpty())
+        if (!tx.settingId.isEmpty()) {
             refresh(tx.settingId);
+            refreshRelated(tx.settingId);
+        }
     });
 }
 

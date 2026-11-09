@@ -6,8 +6,8 @@ The plan requires recording what was actually tested. As of November 6, 2026.
 
 | Check | Evidence |
 | --- | --- |
-| 386 automated tests | `bin/test`, all passing on repeated runs, against fake commands in a temporary root. PATH there holds only fakes and plain file utilities, so a test cannot reach the desktop |
-| 108 checks against real Hyprland 0.56.2, the real Omarchy shell, and real Omarchy scripts | `tools/nested-check.py`, details below |
+| 395 automated tests | `bin/test`, all passing on repeated runs, against fake commands in a temporary root. PATH there holds only fakes and plain file utilities, so a test cannot reach the desktop |
+| 124 checks against real Hyprland 0.56.2, the real Omarchy shell, and real Omarchy scripts | `tools/nested-check.py`, details below |
 | Package install, upgrade, and removal | `tools/package-check.sh`, the real package in a disposable pacman root, with real `pacman` under `fakeroot` |
 | All 77 typed settings read correctly on real hardware | `omarchy-control doctor` on Omarchy 4.5.0-3; recorded in `live-evidence.json` |
 | 391 of 392 routes resolve to an installed executable | Same run. `omarchy-notes` is not installed on that machine, and the row says so. None were launched |
@@ -25,9 +25,10 @@ The plan requires recording what was actually tested. As of November 6, 2026.
 
 `tools/nested-check.py` runs Hyprland and the real Omarchy shell as a window on the desktop, with a temporary `HOME` and runtime directory, and without Omarchy's autostart. Tools that act on the whole machine (`sudo`, `systemctl`, `nmcli`, `pactl`, `pkill`, and others) are stubbed first on PATH, and logged. An isolated runtime directory was confirmed unable to reach the desktop's own shell.
 
-- **50 of 66 writable settings verified:** see the ledger entries with status `verified`. Nearly all went through apply, read back, and undo, including theme, font, background, notifications, clock format, and touchpad options. This found real bugs that fakes could not: Omarchy scripts that exit 1 after succeeding when the shell is down, and a touchpad Lua key spelled differently from its `getoption` name.
+- **60 of 76 writable settings verified:** see the ledger entries with status `verified`. Nearly all went through apply, read back, and undo, including theme, font, background, notifications, clock format, touchpad options, and every blur row. This found real bugs that fakes could not: Omarchy scripts that exit 1 after succeeding when the shell is down, and a touchpad Lua key spelled differently from its `getoption` name.
 - **Display recovery:** the recovery check passes against real Hyprland, using the real detached watchdog. A preview left alone restores itself, restores on request, and restores after the app is killed mid-preview. A kept layout survives a Hyprland reload.
 - **Owned Lua:** one marked import in the right place, no config errors from overrides, shortcuts, or window rules, and undo refuses after an outside edit.
+- **Blur:** Glassy windows, turned on through Omarchy's own command, bring Omarchy's glass. Each blur row's value then wins over it in real Hyprland, from the second owned file whose one line sits after the toggles, and reads back and undoes. Undoing the last choice removes that file and its line and brings the glass values back. Glassy windows keep their blur with Animations and blur off, as the status row says.
 - **Shell:** plugin toggles and bar widget moves work through it. Five panel routes answer over IPC. With the shell killed, shell-only settings and panels report that plainly.
 - **Helpers:** the config editor, a TUI, and a terminal workflow each open a real window.
 - **A real window:** correct Wayland app ID, no QML warnings. Real key events through a real keymap drive Ctrl+K, search, Enter, `?`, Esc, and Q. A second launch hands over and leaves one window. The accent color and Arabic mirroring follow file changes live.
@@ -45,6 +46,7 @@ On November 6, 2026, while auditing GSettings for icon packs, a test meant to be
 
 These need your real session or hardware. Jason decided on November 6, 2026 to run them himself, using the checklist below:
 
+- **Blur on a real session:** how each strength looks and performs, and whether anything stutters. The steps are below.
 - **Icon packs on a real session:** which apps visibly change, and whether they need reopening. Login was checked by reading Omarchy's source, which sets the icon theme only at first run and on theme changes; it has not been observed. The steps are below.
 - **16 writable settings:** brightness, night light, DNS, Wi-Fi band, three power profile rows, language, touchscreen, the five Superwhisper rows, and the icon pack and launcher icons rows. The first fourteen read correctly on real hardware (touchscreen aside, where none was reported), and their writes are fixture-tested only. The icon rows went through the nested session and the icon checks, but not a real desktop session; see [Icon packs](#icon-packs).
 - **Devices:** real sound routing, Bluetooth, Wi-Fi switching, and NetworkManager checkpoints, where polkit's real answer is unknown. Services and startup-app changes too.
@@ -56,7 +58,7 @@ These need your real session or hardware. Jason decided on November 6, 2026 to r
 
 ## Languages
 
-Danish, German, Arabic, and Simplified Chinese are 100% translated: 867 interface and 1040 catalog strings. The Danish, German, and Arabic translations are machine-written and not reviewed by a native speaker. Simplified Chinese (`zh-CN`) was contributed by MonroeLiang in #17. The other 46 Omarchy languages fall back to English per string, with the framework, plurals, and layout direction ready. The plan treats language-switch support and translation coverage as separate facts. Jason decided on November 6, 2026 to leave those languages on the English fallback rather than ship unreviewed machine translation.
+Danish, German, Arabic, and Simplified Chinese are 100% translated: 881 interface and 1068 catalog strings. The Danish, German, and Arabic translations are machine-written and not reviewed by a native speaker. Simplified Chinese (`zh-CN`) was contributed by MonroeLiang in #17; its strings for the blur controls were machine-written afterwards and wait for review. The other 46 Omarchy languages fall back to English per string, with the framework, plurals, and layout direction ready. The plan treats language-switch support and translation coverage as separate facts. Jason decided on November 6, 2026 to leave those languages on the English fallback rather than ship unreviewed machine translation.
 
 ## First live run
 
@@ -98,6 +100,18 @@ Stop at anything surprising, and use `omarchy-control history` and `undo`. This 
 7. **Remove:** hover a pack you imported and press its trash button, or focus it and press Delete. It should go to the Trash (check your file manager's Trash), and undo in History should bring it back. Try removing the pack in use, and a pack another one builds on: each should explain why it stays.
 8. **An app's launcher:** in Apps, open Installed apps and edit an app from a package: rename it, give it an icon from your pack, and save. The launcher should show the new name and icon the next time it opens, and `/usr/share/applications` should be unchanged. Hide another app and check it leaves the launcher. Undo both in History. Then edit a web app, and use Reset.
 9. **Other apps:** open an XWayland GTK 3 app and a KDE app, if any are installed. Note whether they follow the pack now that `~/.config/gtk-3.0/settings.ini` and `~/.config/kdeglobals` name it.
+
+## Blur
+
+Stop at anything surprising, and use `omarchy-control history` and `undo`. This changes how your desktop looks, and undo puts it back.
+
+1. **Off:** with Window transparency on Transparent and Bar background not Glassy, open Appearance, then Blur. It should say Off and explain how to turn blur on. The rows should show Omarchy's glass values.
+2. **On:** set Window transparency to Glassy. Blur should say Behind Glassy windows and menus, and a terminal over a busy background should look frosted.
+3. **Strength:** drag Blur strength through each step. Each should look stronger than the last, with no stutter at Omarchy and Medium. Note how Strong and Very strong feel while moving windows. The first change asks to add one line to `hyprland.lua`; it should go after `require("default.hypr.toggles")`.
+4. **Look and reach:** change Brightness, Color boost and Grain, and turn off Blur menus and popups, then right-click in Files. Turn on Floating windows show only the wallpaper and drag a floating window over another.
+5. **Animations and blur:** turn it off. Glassy windows should keep their blur, and the Blur row should say so. Turn it back on.
+6. **Reset:** press Reset blur to Omarchy's. `~/.config/hypr/omarchy-control-blur.lua` and its line in `hyprland.lua` should be gone, and the blur should look as it did in step 2.
+7. **An app:** in Desktop, add a Don't blur window rule for an app's class, and check that app is no longer frosted. Remove the rule.
 
 ## Displays page
 

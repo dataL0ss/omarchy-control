@@ -600,7 +600,7 @@ int cmdRule(AppCore &core, const QStringList &args, bool json) {
         printJson(QJsonArray::fromVariantList(provider.rules()));
         return 0;
     }
-    err() << "Usage: omarchy-control rule add <class> <float|tile|workspace|opacity> [value] | remove <index> | list\n";
+    err() << "Usage: omarchy-control rule add <class> <float|tile|workspace|opacity|noblur> [value] | remove <index> | list\n";
     return 1;
 }
 

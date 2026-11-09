@@ -24,6 +24,11 @@ Item {
     property bool file: false
     // A short list of destinations given more room, as a page's few links are.
     property bool prominent: false
+    // Whether the rows this one keeps behind it are showing; the section holding them decides.
+    property bool disclosed: false
+    signal disclosureToggled()
+    readonly property bool discloses: rich && (entry.discloses || []).length > 0
+    readonly property bool blurStrength: rich && entryId === "appearance.blur.strength"
     readonly property string filePath: file ? (entry.file || "") : ""
     readonly property string fileName: filePath.replace(/\/+$/, "").split("/").pop()
     readonly property string fileFolder: filePath.slice(0, filePath.length - fileName.length)
@@ -288,6 +293,8 @@ Item {
                 sourceComponent: {
                     if (root.displayScale)
                         return displayScaleControl
+                    if (root.blurStrength)
+                        return blurStrengthControl
                     switch (root.kind) {
                     case "toggle": return toggleControl
                     case "choice": return choiceControl
@@ -348,6 +355,46 @@ Item {
                 choices: root.st.choices || []
                 details: root.st.extra || ({})
                 onPicked: function (value) { win.requestChange(root.stateId, value) }
+            }
+        }
+
+        // The finer settings this one stands for, such as a strength's radius and passes.
+        AppButton {
+            objectName: "disclosureButton"
+            visible: root.discloses && !root.compact
+            style: "link"
+            text: root.disclosed ? qsTr("Hide fine-tuning") : qsTr("Fine-tune")
+            iconName: "chevron"
+            iconRotation: root.disclosed ? 180 : 0
+            Accessible.expandable: true
+            Accessible.expanded: root.disclosed
+            onClicked: root.disclosureToggled()
+        }
+
+        // Under the blur status: one way back to Omarchy's glass for every blur row set here.
+        Loader {
+            Layout.fillWidth: true
+            active: root.rich && root.entryId === "appearance.blur.status" && root.status === "ok"
+            visible: active && item && item.overrides.length > 0
+            sourceComponent: RowLayout {
+                readonly property var overrides: {
+                    var ids = [], states = backend.states
+                    for (var key in states)
+                        if (key.indexOf("appearance__blur__") === 0 && states[key] && states[key].isOverride)
+                            ids.push(key.replace(/__/g, "."))
+                    return ids
+                }
+                AppButton {
+                    objectName: "blurResetAll"
+                    style: "link"
+                    iconName: "undo"
+                    text: qsTr("Reset blur to Omarchy's")
+                    onClicked: {
+                        for (var i = 0; i < parent.overrides.length; ++i)
+                            backend.resetValue(parent.overrides[i])
+                    }
+                }
+                Item { Layout.fillWidth: true }
             }
         }
 
@@ -436,6 +483,15 @@ Item {
                 else if (route === "stage")
                     backend.displays.stageEdit(root.scaleInfo.output, "scale", value)
             }
+        }
+    }
+    Component {
+        id: blurStrengthControl
+        BlurStrength {
+            entry: root.entry
+            st: root.st
+            editable: root.editable
+            stateId: root.stateId
         }
     }
     Component {

@@ -30,6 +30,7 @@
 #endif
 
 #include "appcore.h"
+#include "blur.h"
 #include "audioprovider.h"
 #include "backend.h"
 #include "bluetoothprovider.h"
@@ -105,6 +106,25 @@ struct Sandbox {
     void omarchy(const QByteArray &body) const { command("omarchy", body); }
 };
 
+// A sandbox whose Hyprland holds blur as the real one would: the fake used by the
+// screenshot sandbox, Omarchy's glass, and a stock hyprland.lua.
+static void blurSandbox(Sandbox &s) {
+    s.minimalHyprland();
+    writeFile(s.bin("hyprctl"), readAll(PROJECT_ROOT "/tools/fake-hyprctl"));
+    QFile::setPermissions(s.bin("hyprctl"), QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    writeFile(s.env.omarchyPath + "/default/hypr/glass.lua",
+              "return function()\n  hl.config({\n    decoration = {\n      blur = {\n        enabled = true,\n        size = 4,\n        passes = 2,\n"
+              "        contrast = 1.0,\n        brightness = 0.75,\n        noise = 0.01,\n        vibrancy = 0.35,\n        vibrancy_darkness = 0.35,\n"
+              "        popups = true,\n        special = true,\n      },\n    },\n  })\nend\n");
+    QDir().mkpath(s.env.stateHome + "/omarchy/toggles/hypr");
+}
+static void blurToggle(Sandbox &s, const QString &name, bool on) {
+    const QString path = s.env.stateHome + "/omarchy/toggles/hypr/" + name + ".lua";
+    if (on)
+        writeFile(path, "-- toggle\n");
+    else
+        QFile::remove(path);
+}
 Transaction applySetting(SettingsEngine &engine, const QString &id, const QString &value) {
     Transaction result;
     bool done = false;
@@ -637,6 +657,172 @@ private slots:
         QVERIFY(!module.installImport(&error));
         QVERIFY(!error.isEmpty());
         QCOMPARE(readAll(s.env.configHome + "/hypr/hyprland.lua"), before);
+    }
+
+    // ---- Blur ------------------------------------------------------------------
+    void glassParsingKeepsOnlyBlurValues() {
+        const auto values = Blur::parseGlass("-- Frosted glass\nreturn function()\n  hl.config({\n    decoration = {\n      blur = {\n"
+                                             "        size = 4, -- small\n        brightness = 0.75,\n        xray = false,\n        name = \"x\",\n      },\n    },\n  })\nend\n");
+        QCOMPARE(values.value("size"), QString("4"));
+        QCOMPARE(values.value("brightness"), QString("0.75"));
+        QCOMPARE(values.value("xray"), QString("false"));
+        QVERIFY(!values.contains("name"));
+        QVERIFY(Blur::parseGlass("nothing here").isEmpty());
+    }
+    void blurStatusFollowsOmarchysToggles() {
+        Blur::Toggles none, windows, bar, both;
+        windows.windows = true;
+        bar.bar = true;
+        both.windows = both.bar = true;
+        QCOMPARE(Blur::status(none, false), QString("off"));
+        QCOMPARE(Blur::status(windows, true), QString("windows"));
+        QCOMPARE(Blur::status(both, true), QString("windows"));
+        QCOMPARE(Blur::status(bar, true), QString("bar"));
+        QCOMPARE(Blur::status(none, true), QString("on"));
+        QVERIFY(Blur::statusReason(none, true).contains("Your own"));
+        QVERIFY(Blur::statusReason(windows, true).isEmpty());
+        // Toggles load in name order: no-animations turns off the bar's blur, but
+        // Glassy windows load after it and turn blur back on.
+        windows.noAnimations = bar.noAnimations = true;
+        QVERIFY(Blur::statusReason(windows, true).contains("keep their blur"));
+        QVERIFY(Blur::statusReason(bar, false).contains("not blurred"));
+    }
+    void strengthNamesItsPresetOrSaysTheParts() {
+        const QJsonObject presets{{"light", QJsonObject{{"size", 3}, {"passes", 1}}}, {"omarchy", QJsonObject{}}, {"strong", QJsonObject{{"size", 6}, {"passes", 3}}}};
+        const QHash<QString, QString> glass{{"size", "4"}, {"passes", "2"}};
+        QCOMPARE(Blur::strengthName(presets, "3", "1", glass), QString("light"));
+        QCOMPARE(Blur::strengthName(presets, "4", "2", glass), QString("omarchy"));
+        QCOMPARE(Blur::strengthName(presets, "6", "3", glass), QString("strong"));
+        QCOMPARE(Blur::strengthName(presets, "7", "2", glass), QString("7") + QChar(0x00D7) + "2");
+    }
+    void blurImportGoesAfterTogglesAndLeavesTheMainOneAlone() {
+        Sandbox s;
+        s.minimalHyprland();
+        const QByteArray stock = readAll(s.env.configHome + "/hypr/hyprland.lua");
+        HyprModule blur(s.env, HyprModule::Blur), main(s.env);
+        QCOMPARE(blur.path(), s.env.configHome + "/hypr/omarchy-control-blur.lua");
+        QVERIFY(blur.installImport());
+        QVERIFY(blur.importInstalled());
+        QVERIFY(!main.importInstalled());
+        QString lua = QString::fromUtf8(readAll(s.env.configHome + "/hypr/hyprland.lua"));
+        QVERIFY(lua.indexOf("require(\"default.hypr.toggles\")") < lua.indexOf("require(\"hypr.omarchy-control-blur\")"));
+        QVERIFY(main.installImport());
+        lua = QString::fromUtf8(readAll(s.env.configHome + "/hypr/hyprland.lua"));
+        QVERIFY(lua.indexOf("require(\"hypr.omarchy-control\")") < lua.indexOf("require(\"default.hypr.toggles\")"));
+        // Taking the blur file away leaves the main one's line where it was.
+        QVERIFY(blur.removeEntirely());
+        QVERIFY(!QFile::exists(blur.path()));
+        QVERIFY(!blur.importInstalled());
+        QVERIFY(main.importInstalled());
+        QVERIFY(main.removeImport());
+        QCOMPARE(readAll(s.env.configHome + "/hypr/hyprland.lua"), stock);
+        // A config without Omarchy's toggles line gets no blur line at all.
+        writeFile(s.env.configHome + "/hypr/hyprland.lua", "require(\"hypr.autostart\")\n");
+        QVERIFY(!HyprModule(s.env, HyprModule::Blur).canInstallImport());
+        QVERIFY(HyprModule(s.env).canInstallImport());
+    }
+    void blurRowsShowOmarchysGlassUntilChosenHere() {
+        Sandbox s;
+        blurSandbox(s);
+        AppCore core(s.env);
+        core.capabilities.scanServicesBlocking();
+        // No Glassy toggle: blur is off, and the rows say what turning it on brings.
+        ReadResult status = readSetting(core.engine, "appearance.blur.status");
+        QCOMPARE(status.value, QString("off"));
+        QVERIFY(status.reason.contains("Glassy"));
+        ReadResult brightness = readSetting(core.engine, "appearance.blur.brightness");
+        QCOMPARE(brightness.value, QString("0.75"));
+        QCOMPARE(brightness.source, QString("Omarchy's glass"));
+        QVERIFY(!brightness.isOverride);
+        QCOMPARE(readSetting(core.engine, "appearance.blur.strength").value, QString("omarchy"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.popups").value, QString("true"));
+        blurToggle(s, "window-glassy", true);
+        QCOMPARE(readSetting(core.engine, "appearance.blur.status").value, QString("windows"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.brightness").value, QString("0.75"));
+    }
+    void blurChoicesLoadAfterTogglesAndLeaveNoTrace() {
+        Sandbox s;
+        blurSandbox(s);
+        blurToggle(s, "window-glassy", true);
+        const QByteArray stock = readAll(s.env.configHome + "/hypr/hyprland.lua");
+        AppCore core(s.env);
+        core.capabilities.scanServicesBlocking();
+        const QString file = s.env.configHome + "/hypr/omarchy-control-blur.lua";
+
+        const ChangePlan plan = core.engine.plan("appearance.blur.strength", "strong");
+        QVERIFY(plan.ok);
+        QVERIFY(plan.needsOwnership);
+        QVERIFY(plan.confirmText.contains("omarchy-control-blur.lua"));
+        QCOMPARE(applySetting(core.engine, "appearance.blur.strength", "strong").phase, QString("committed"));
+        QVERIFY(readAll(file).contains("size = 6"));
+        QVERIFY(readAll(file).contains("passes = 3"));
+        ReadResult strength = readSetting(core.engine, "appearance.blur.strength");
+        QCOMPARE(strength.value, QString("strong"));
+        QVERIFY(strength.isOverride);
+        QCOMPARE(strength.extra.value("size").toString(), QString("6"));
+        // Nothing went into the main file, which loads before Glassy would undo it.
+        QVERIFY(!QFile::exists(s.env.configHome + "/hypr/omarchy-control.lua"));
+
+        // Color boost sets both of Hyprland's vibrancy options.
+        QCOMPARE(applySetting(core.engine, "appearance.blur.vibrancy", "0.6").phase, QString("committed"));
+        QVERIFY(readAll(file).contains("vibrancy = 0.6"));
+        QVERIFY(readAll(file).contains("vibrancy_darkness = 0.6"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.vibrancy").source, QString("Set here"));
+
+        // A radius of its own makes the strength a custom pair, which undo can restore.
+        QCOMPARE(applySetting(core.engine, "appearance.blur.size", "7").phase, QString("committed"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.strength").value, QString("7") + QChar(0x00D7) + "3");
+        QVERIFY(core.engine.plan("appearance.blur.strength", "7x3").ok);
+        QVERIFY(!core.engine.plan("appearance.blur.strength", "30x3").ok);
+        QVERIFY(!core.engine.plan("appearance.blur.strength", "loud").ok);
+
+        // Omarchy's strength gives size and passes back to the glass.
+        QCOMPARE(applySetting(core.engine, "appearance.blur.strength", "omarchy").phase, QString("committed"));
+        QVERIFY(!readAll(file).contains("size ="));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.strength").value, QString("omarchy"));
+
+        // Resetting the last choice takes the file and its line away again.
+        Transaction reset;
+        bool done = false;
+        core.engine.reset("appearance.blur.vibrancy", [&](const Transaction &t) { reset = t; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 8000);
+        QCOMPARE(reset.phase, QString("committed"));
+        QVERIFY(!QFile::exists(file));
+        QCOMPARE(readAll(s.env.configHome + "/hypr/hyprland.lua"), stock);
+        QCOMPARE(readSetting(core.engine, "appearance.blur.vibrancy").value, QString("0.35"));
+    }
+    void blurChangesUndo() {
+        Sandbox s;
+        blurSandbox(s);
+        blurToggle(s, "bar-glassy", true);
+        AppCore core(s.env);
+        core.capabilities.scanServicesBlocking();
+        QCOMPARE(applySetting(core.engine, "appearance.blur.strength", "light").phase, QString("committed"));
+        const Transaction tx = applySetting(core.engine, "appearance.blur.strength", "medium");
+        QCOMPARE(tx.phase, QString("committed"));
+        Transaction undone;
+        bool done = false;
+        core.engine.undo(tx.id, [&](const Transaction &t) { undone = t; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 8000);
+        QCOMPARE(undone.phase, QString("committed"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.strength").value, QString("light"));
+    }
+    void handEditedBlurFilePausesOnlyBlur() {
+        Sandbox s;
+        blurSandbox(s);
+        HyprModule module(s.env, HyprModule::Blur);
+        module.setOption({"decoration", "blur", "noise"}, 0.05);
+        QVERIFY(module.save());
+        QVERIFY(module.installImport());
+        writeFile(module.path(), readAll(module.path()) + "-- mine\n");
+        AppCore core(s.env);
+        core.capabilities.scanServicesBlocking();
+        const ChangePlan plan = core.engine.plan("appearance.blur.noise", "0.1");
+        QVERIFY(!plan.ok);
+        QVERIFY(plan.error.contains("omarchy-control-blur.lua"));
+        QCOMPARE(readSetting(core.engine, "appearance.blur.noise").status, QString("custom"));
+        // The main file is not affected by the blur file's state.
+        QVERIFY(core.engine.plan("appearance.gaps_in", "6").ok);
     }
 
     // ---- Change coordinator ---------------------------------------------------
@@ -3265,11 +3451,13 @@ esac
             QJsonObject{{"match", "firefox"}, {"action", "float"}},
             QJsonObject{{"match", "x\")\nos.execute(\"y"}, {"action", "workspace"}, {"value", "3"}},
             QJsonObject{{"match", "term"}, {"action", "opacity"}, {"value", "0.9 0.85"}},
+            QJsonObject{{"match", "steam"}, {"action", "noblur"}},
         });
         const QString lua = QString::fromUtf8(module.render());
         QVERIFY(lua.contains("o.window(\"firefox\", { float = true })"));
         QVERIFY(lua.contains("workspace = \"3\""));
         QVERIFY(lua.contains("opacity = \"0.9 0.85\""));
+        QVERIFY(lua.contains("o.window(\"steam\", { no_blur = true })"));
         QVERIFY(!lua.contains("\nos.execute"));
         QVERIFY(module.save());
         QCOMPARE(module.state(), HyprModule::Ours);
@@ -3287,6 +3475,7 @@ esac
         QTest::newRow("workspace junk") << "x" << "workspace" << "3\"); boom" << false;
         QTest::newRow("opacity pair") << "x" << "opacity" << "0.9 0.85" << true;
         QTest::newRow("opacity high") << "x" << "opacity" << "7" << false;
+        QTest::newRow("no blur") << "steam" << "noblur" << "" << true;
         QTest::newRow("unknown action") << "x" << "exec" << "rm" << false;
     }
     void windowRuleValidation() {

@@ -6,16 +6,23 @@
 
 #include "env.h"
 
-// The one Lua file this application owns: ~/.config/hypr/omarchy-control.lua.
-// It holds only values someone explicitly chose here, loads after the user's
-// override files and before Omarchy's toggles, and is regenerated whole from the
-// data on its first line. An edit by anything else is detected rather than
-// overwritten, and the app never executes the user's Lua to learn what it does.
+// The Lua files this application owns in ~/.config/hypr. Each holds only values
+// someone explicitly chose here and is regenerated whole from the data on its first
+// line. An edit by anything else is detected rather than overwritten, and the app
+// never executes the user's Lua to learn what it does.
+//
+// Main, omarchy-control.lua, loads after the user's override files and before
+// Omarchy's toggles, so a toggle chosen later wins. Blur, omarchy-control-blur.lua,
+// loads after the toggles: Omarchy's Glassy toggles set every blur value as they
+// load, so a blur choice made here has to come after them to count.
 class HyprModule {
 public:
-    explicit HyprModule(const Env &env);
+    enum Slot { Main, Blur };
+    explicit HyprModule(const Env &env, Slot slot = Main);
 
+    Slot slot() const { return m_slot; }
     QString path() const;
+    QString fileName() const;
     QString hyprlandPath() const;
 
     enum State { Absent, Ours, ModifiedByUser };
@@ -27,6 +34,11 @@ public:
     QJsonArray rules() const { return m_data.value("rules").toArray(); }
 
     bool load(QString *error = nullptr);
+    // Nothing chosen here at all, so the file and its line have no reason to exist.
+    bool isEmpty() const;
+    // Takes the line out of hyprland.lua, then the file, in that order: Lua's require
+    // fails outright on a missing file, and Hyprland reloads when hyprland.lua changes.
+    bool removeEntirely(QString *error = nullptr);
     void setOption(const QStringList &path, const QJsonValue &value);
     void removeOption(const QStringList &path);
     bool hasOption(const QStringList &path) const;
@@ -40,8 +52,9 @@ public:
     bool save(QString *error = nullptr);
 
     // Whether the marked import line is in place, and adding or removing it. The
-    // anchor is Omarchy's stock require("hypr.autostart") line; a config without
-    // one stays untouched and the setting offers advanced access instead.
+    // anchor is Omarchy's stock require("hypr.autostart") line for Main, and its
+    // require("default.hypr.toggles") line for Blur; a config without one stays
+    // untouched and the setting offers advanced access instead.
     bool importInstalled() const;
     bool canInstallImport() const;
     bool installImport(QString *error = nullptr);
@@ -51,6 +64,11 @@ public:
     static bool isSafeKey(const QString &key);
 
 private:
+    QByteArray requireText() const;
+    QByteArray anchorText() const;
+    QByteArray importLine() const;
+
     Env m_env;
+    Slot m_slot;
     QJsonObject m_data;
 };

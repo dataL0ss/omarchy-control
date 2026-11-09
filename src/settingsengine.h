@@ -75,6 +75,9 @@ public:
 
 private:
     void readFiles(const CatalogEntry &entry, ReadCallback callback);
+    void readBlur(const CatalogEntry *entry, ReadCallback callback);
+    // Reads Hyprland options one after another, stopping at the first that fails.
+    void hyprOptions(const QStringList &names, std::function<void(const QHash<QString, QString> &, const QString &)> done);
     void applyCommand(const CatalogEntry &entry, const QJsonObject &write, const QString &value, const QString &before,
                       const QString &target, ChangeCoordinator::Done done);
     QStringList substitute(const QJsonArray &argv, const QString &value, const CatalogEntry *entry = nullptr, const QString &target = {}) const;

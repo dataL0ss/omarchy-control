@@ -31,6 +31,29 @@ case "${args[0]}" in
       input:touchpad:clickfinger_behavior) echo '{"bool":true}';;
       input:touchpad:disable_while_typing) echo '{"bool":true}';;
       input:touchpad:drag_3fg) echo '{"int":0}';;
+      # Blur as Hyprland would hold it: Omarchy's defaults turn it off, a Glassy toggle
+      # loads glass.lua, no-animations turns it off again unless Glassy windows load
+      # after it, and Control's blur file comes last. Plain bash: the sandbox has no Python.
+      decoration:blur:*)
+        key="${args[1]#decoration:blur:}"
+        toggles="$HOME/.local/state/omarchy/toggles/hypr"
+        declare -A v=([enabled]=false [size]=8 [passes]=1 [brightness]=1.0 [contrast]=0.8916 [vibrancy]=0.1696
+                      [vibrancy_darkness]=0 [noise]=0.0117 [xray]=false [popups]=false [special]=false)
+        glass() {
+          local k val
+          while read -r k val; do v[$k]=$val; done < <(sed -n 's/^ *\([a-z_]*\) *= *\(-\{0,1\}[0-9.]*\|true\|false\) *,.*/\1 \2/p' "${OMARCHY_PATH:-$(dirname "$0")/../omarchy}/default/hypr/glass.lua" 2>/dev/null)
+        }
+        [ -f "$toggles/bar-glassy.lua" ] && glass
+        [ -f "$toggles/no-animations.lua" ] && v[enabled]=false
+        [ -f "$toggles/window-glassy.lua" ] && glass
+        mine=$(sed -n '3s/.*"blur":{\([^}]*\)}.*/\1/p' "$HOME/.config/hypr/omarchy-control-blur.lua" 2>/dev/null)
+        set=$(printf '%s' "$mine" | tr ',' '\n' | sed -n "s/^\"$key\":\(.*\)$/\1/p")
+        [ -n "$set" ] && v[$key]=$set
+        val="${v[$key]:-0}"
+        case "$val" in
+          true|false) echo "{\"bool\":$val}";;
+          *) if [ "$key" = size ] || [ "$key" = passes ]; then echo "{\"int\":${val%.*}}"; else echo "{\"float\":$val}"; fi;;
+        esac;;
     esac;;
   reload|eval) echo "${args[*]}" >>"$LOG"; echo ok;;
 esac
