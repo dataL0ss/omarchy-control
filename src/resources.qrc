@@ -12,5 +12,6 @@
         <file alias="i18n/da.json">i18n/da.json</file>
         <file alias="i18n/de.json">i18n/de.json</file>
         <file alias="i18n/ar.json">i18n/ar.json</file>
+        <file alias="i18n/zh-CN.json">i18n/zh-CN.json</file>
     </qresource>
 </RCC>
