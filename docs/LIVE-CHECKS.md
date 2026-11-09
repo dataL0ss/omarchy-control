@@ -56,7 +56,7 @@ These need your real session or hardware. Jason decided on November 6, 2026 to r
 
 ## Languages
 
-Danish, German, and Arabic are 100% translated: 867 interface and 1040 catalog strings. Those translations are machine-written and not reviewed by a native speaker. The other 47 Omarchy languages fall back to English per string, with the framework, plurals, and layout direction ready. The plan treats language-switch support and translation coverage as separate facts. Jason decided on November 6, 2026 to leave those languages on the English fallback rather than ship unreviewed machine translation.
+Danish, German, Arabic, and Simplified Chinese are 100% translated: 867 interface and 1040 catalog strings. The Danish, German, and Arabic translations are machine-written and not reviewed by a native speaker. Simplified Chinese (`zh-CN`) was contributed by MonroeLiang in #17. The other 46 Omarchy languages fall back to English per string, with the framework, plurals, and layout direction ready. The plan treats language-switch support and translation coverage as separate facts. Jason decided on November 6, 2026 to leave those languages on the English fallback rather than ship unreviewed machine translation.
 
 ## First live run
 
