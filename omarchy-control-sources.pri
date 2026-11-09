@@ -20,6 +20,7 @@ HEADERS += \
     $$PWD/src/launchereditor.h \
     $$PWD/src/catalog.h \
     $$PWD/src/capabilities.h \
+    $$PWD/src/blur.h \
     $$PWD/src/hypromodule.h \
     $$PWD/src/changecoordinator.h \
     $$PWD/src/settingsengine.h \
@@ -57,6 +58,7 @@ SOURCES += \
     $$PWD/src/launchereditor.cpp \
     $$PWD/src/catalog.cpp \
     $$PWD/src/capabilities.cpp \
+    $$PWD/src/blur.cpp \
     $$PWD/src/hypromodule.cpp \
     $$PWD/src/changecoordinator.cpp \
     $$PWD/src/settingsengine.cpp \

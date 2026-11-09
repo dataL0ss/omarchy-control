@@ -159,6 +159,10 @@ QVariantMap CatalogEntry::toVariant() const {
     m["tone"] = tone;
     m["link"] = link.toVariantMap();
     m["tones"] = tones.toVariantMap();
+    m["discloses"] = discloses;
+    // A named strength's parts, so a custom pair can be placed near the nearest step.
+    if (write.contains("presets"))
+        m["presets"] = write.value("presets").toObject().toVariantMap();
     return m;
 }
 
@@ -248,6 +252,7 @@ void Catalog::load(const QString &path) {
         e.tone = o.value("tone").toString();
         e.link = o.value("link").toObject();
         e.tones = o.value("tones").toObject();
+        e.discloses = toStrings(o.value("discloses"));
         m_index.insert(e.id, m_entries.size());
         m_entries << e;
     }

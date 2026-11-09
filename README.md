@@ -80,7 +80,7 @@ Packages are built for x86_64 by [a public workflow](.github/workflows/release.y
 <td width="50%" valign="top">
 <img src="docs/screens/appearance.png" alt="The Appearance page, choosing a theme from tiles"><br><br>
 <b>See a theme before you pick it</b><br>
-Themes, backgrounds, and icon packs are tiles, not filenames. Install a pack you downloaded by dropping in its folder, or the .zip or .tar it came in. Removing one moves it to the Trash, and undo brings it back. Your pack reaches Omarchy's launcher and dock too, which otherwise mix icons from every installed pack, using an idea from [Iconic](https://github.com/UnderStackDev/omarchy_iconic). The same live, verified settings cover fonts, windows, the bar and dock, idle timers, power profiles, input, DNS, and language.
+Themes, backgrounds, and icon packs are tiles, not filenames. Install a pack you downloaded by dropping in its folder, or the .zip or .tar it came in. Removing one moves it to the Trash, and undo brings it back. Your pack reaches Omarchy's launcher and dock too, which otherwise mix icons from every installed pack, using an idea from [Iconic](https://github.com/UnderStackDev/omarchy_iconic). Blur behind Glassy windows and the bar has its own strength, brightness, color, and grain. The same live, verified settings cover fonts, windows, the bar and dock, idle timers, power profiles, input, DNS, and language.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screens/sound.png" alt="The Sound and devices page"><br><br>
@@ -129,7 +129,7 @@ Every public Omarchy command and menu row in the 4.5 inventory has a destination
 - **Passwords are never collected.** Joining a secured network goes to Omarchy's panel, and installing an update leaves the password prompt to `sudo`.
 
 > [!NOTE]
-> **Version 0.3.1, built against Omarchy 4.5 and Hyprland 0.56.** 50 of 66 writable settings, display recovery, and the real window are verified against real Hyprland, the real shell, and real Omarchy scripts in an isolated nested session, and every setting reads correctly on real hardware. The checklist of changes on a real desktop session is still open. [What has and has not been verified](docs/LIVE-CHECKS.md) has the details.
+> **Version 0.3.1, built against Omarchy 4.5 and Hyprland 0.56.** 60 of 76 writable settings, display recovery, and the real window are verified against real Hyprland, the real shell, and real Omarchy scripts in an isolated nested session, and every setting reads correctly on real hardware. The checklist of changes on a real desktop session is still open. [What has and has not been verified](docs/LIVE-CHECKS.md) has the details.
 
 ## Keyboard shortcuts
 
@@ -189,7 +189,7 @@ Building from source needs `qt6-base`, `qt6-declarative`, `qt6-svg`, and `qt6-wa
 ```sh
 bin/build                  # build/omarchy-control
 bin/install                # Build the Arch package from this checkout and install it
-bin/test                   # 386 tests; never touches the real desktop
+bin/test                   # 395 tests; never touches the real desktop
 tools/nested-check.py      # Real Hyprland and Omarchy scripts in an isolated session
 tools/package-check.sh     # Install, upgrade, and remove in a disposable pacman root
 tools/installer-check.sh   # install.sh against real release files in a disposable root

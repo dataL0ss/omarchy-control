@@ -9,7 +9,8 @@ ColumnLayout {
         { value: "float", label: qsTr("Always float") },
         { value: "tile", label: qsTr("Always tile") },
         { value: "workspace", label: qsTr("Open on workspace") },
-        { value: "opacity", label: qsTr("Set opacity") }
+        { value: "opacity", label: qsTr("Set opacity") },
+        { value: "noblur", label: qsTr("Don't blur") }
     ]
     function actionLabel(rule) {
         for (var i = 0; i < actions.length; ++i)

@@ -69,11 +69,11 @@ omarchy)
     "font cjk") echo default;;
     "display text size "*) sed -i "s/base-size = .*/base-size = $5/" "$HOME/.config/omarchy/shell.toml";;
     "hyprland corners") echo theme;;
-    "hyprland window transparency") echo transparent;;
+    "hyprland window transparency") if [ -f "$HOME/.local/state/omarchy/toggles/hypr/window-glassy.lua" ]; then echo glassy; else echo transparent; fi;;
     "hyprland workspace layout default") echo dwindle;;
     "hyprland monitor scaling") echo 1.25;;
     "bar position") echo top;;
-    "bar background") echo opaque;;
+    "bar background") if [ -f "$HOME/.local/state/omarchy/toggles/hypr/bar-glassy.lua" ]; then echo glassy; else echo opaque; fi;;
     "bar get omarchy.clock format") echo "ddd d MMM HH:mm";;
     "bar get omarchy.clock verticalFormat") printf 'HH\n—\nmm\n';;
     "dock position") echo bottom;;

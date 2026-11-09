@@ -22,6 +22,29 @@ ColumnLayout {
     spacing: 8
     onContainsFocusChanged: if (containsFocus) expanded = true
 
+    // Rows another row keeps behind it, by the id of the row that holds them. They
+    // show once it is opened, or when search lands on one of them.
+    property var disclosedBy: ({})
+    readonly property var held: {
+        var map = {}
+        for (var i = 0; i < rows.length; ++i)
+            for (var j = 0; j < (rows[i].discloses || []).length; ++j)
+                map[rows[i].discloses[j]] = rows[i].id
+        return map
+    }
+    readonly property var shownRows: rows.filter(function (row) {
+        var holder = held[row.id]
+        return !holder || !!disclosedBy[holder] || row.id === focusId
+    })
+    function toggleDisclosure(id) {
+        var next = Object.assign({}, disclosedBy)
+        if (next[id])
+            delete next[id]
+        else
+            next[id] = true
+        disclosedBy = next
+    }
+
     function rowItem(id) {
         for (var i = 0; i < repeater.count; ++i)
             if (repeater.itemAt(i) && repeater.itemAt(i).entryId === id)
@@ -63,13 +86,15 @@ ColumnLayout {
         Layout.fillWidth: true
         Repeater {
             id: repeater
-            model: root.expanded ? root.rows : []
+            model: root.expanded ? root.shownRows : []
             delegate: SettingRow {
                 width: parent ? parent.width : 400
                 entry: modelData
-                last: index === root.rows.length - 1
+                last: index === root.shownRows.length - 1
                 highlighted: root.focusId === modelData.id
                 rich: true
+                disclosed: !!root.disclosedBy[modelData.id] || (modelData.discloses || []).indexOf(root.focusId) >= 0
+                onDisclosureToggled: root.toggleDisclosure(modelData.id)
             }
         }
     }

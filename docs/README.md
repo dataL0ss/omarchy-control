@@ -6,6 +6,7 @@ Version 0.3.1 is built, tested, and verified on real Hyprland in an isolated nes
 
 - [Implementation plan](PLAN.md): product direction, native design, architecture, change handling, milestones, and acceptance criteria.
 - [Icon theme plan](ICON-THEMES-PLAN.md): installed icon pack selection, previews, persistent overrides, local folder import, and verification gates.
+- [Blur plan](BLUR-PLAN.md): dedicated blur controls, why their values load after Omarchy's toggles, and what upstream is changing.
 - [Coverage map](COVERAGE.md): configuration domains, integration choices, helper availability, and the process for keeping coverage complete.
 - [P0 findings](P0-FINDINGS.md): what each Omarchy command actually does, the write strategy for each provider, and what was tried and rejected.
 - [Live checks](LIVE-CHECKS.md): what is verified, what is not, and the steps for a first live run.

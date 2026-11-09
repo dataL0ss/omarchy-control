@@ -2,7 +2,7 @@
 //
 // Steps, joined by "+", set up a state before the picture: select=OUT, stage=OUT/field/value,
 // focus=NAME or NAME@N (the Nth visible item of that name), click=NAME or NAME@N, text=NAME/VALUE,
-// preview, check, discard, refresh, unplug=OUT, details=ID, scroll=PX, rescan, connect=UUID/NAME,
+// preview, check, discard, refresh, unplug=OUT, details=ID, scroll=PX, rescan, connect=UUID/NAME, apply=ID/VALUE,
 // keep, goback, wait=MS. They act only on the sandbox's fake
 // displays: unplug drops a display from the fake Hyprland's list and refreshes.
 //
@@ -65,6 +65,9 @@ static void runSteps(QQuickWindow *window, Backend &backend, const QString &home
                 if (item->objectName() == QLatin1String("settingRow") && item->property("entryId").toString() == value)
                     item->setProperty("showDetails", true);
             });
+        // A change as if confirmed, for states only a change can reach: apply=ID/VALUE.
+        else if (name == QLatin1String("apply"))
+            backend.commit(value.section('/', 0, 0), value.section('/', 1));
         else if (name == QLatin1String("click")) {
             // Every visible item of that name, or only the Nth with name@N.
             const QString wanted = value.section('@', 0, 0);

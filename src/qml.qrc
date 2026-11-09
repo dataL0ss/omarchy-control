@@ -5,6 +5,7 @@
         <file alias="BarWidgetChip.qml">BarWidgetChip.qml</file>
         <file alias="DisclosurePanel.qml">DisclosurePanel.qml</file>
         <file alias="IconPackTiles.qml">IconPackTiles.qml</file>
+        <file alias="BlurStrength.qml">BlurStrength.qml</file>
         <file alias="IconLayerStatus.qml">IconLayerStatus.qml</file>
         <file alias="IconFolderDialog.qml">IconFolderDialog.qml</file>
         <file alias="IconArchiveDialog.qml">IconArchiveDialog.qml</file>

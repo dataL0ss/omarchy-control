@@ -15,6 +15,46 @@
   "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-06 (tools/nested-check.py)",
   "status": "verified"
  },
+ "appearance.blur.brightness": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.contrast": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.noise": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.passes": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.popups": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.size": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.special": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.strength": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.vibrancy": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
+ "appearance.blur.xray": {
+  "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-09 (tools/nested-check.py)",
+  "status": "verified"
+ },
  "appearance.border": {
   "evidence": "apply, read back, and undo with real Omarchy scripts and real Hyprland in an isolated nested session, 2026-11-06 (tools/nested-check.py)",
   "status": "verified"

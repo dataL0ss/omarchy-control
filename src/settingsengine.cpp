@@ -13,6 +13,7 @@
 #include <cmath>
 #include <memory>
 
+#include "blur.h"
 #include "fileops.h"
 
 QVariantMap ChangePlan::toVariant() const {
@@ -41,6 +42,97 @@ QStringList SettingsEngine::expandArgv(const QStringList &argv) const {
     QStringList out;
     for (const auto &arg : argv)
         out << ((arg.startsWith("~/") || arg.contains("{config}") || arg.contains("{state}")) ? m_runner->env().expand(arg) : arg);
+    return out;
+}
+
+// Which owned Lua file a Hyprland setting is kept in.
+static HyprModule::Slot slotOf(const CatalogEntry &entry) {
+    return entry.write.value("slot").toString() == QLatin1String("blur") ? HyprModule::Blur : HyprModule::Main;
+}
+
+static QStringList pathOf(const QJsonArray &parts) {
+    QStringList path;
+    for (const auto &part : parts)
+        path << part.toString();
+    return path;
+}
+
+// One option a Hyprland setting writes, or removes.
+struct HyprEdit {
+    QStringList path;
+    QJsonValue value;
+    bool remove = false;
+};
+
+static QJsonValue typedValue(const CatalogEntry &entry, const QString &value);
+
+// "6×3", or "6x3" as typed, within the ranges Fine-tune offers.
+static bool customStrength(const CatalogEntry &entry, const QString &value, int *size, int *passes) {
+    if (entry.write.value("presets").toObject().isEmpty())
+        return false;
+    static const QRegularExpression pair(QStringLiteral("^([0-9]{1,3})[x\u00D7]([0-9]{1,2})$"));
+    const auto match = pair.match(value);
+    if (!match.hasMatch())
+        return false;
+    *size = match.captured(1).toInt();
+    *passes = match.captured(2).toInt();
+    return *size >= 1 && *size <= 20 && *passes >= 1 && *passes <= 4;
+}
+
+// Most settings write one option. Some write the same value to a second one, as Color
+// boost does to both vibrancy options, and a named strength writes a pair from its
+// preset, where a key the preset leaves out is removed so Omarchy's glass applies.
+static QList<HyprEdit> hyprEdits(const CatalogEntry &entry, const QString &value, bool remove) {
+    QList<HyprEdit> edits;
+    const QJsonObject presets = entry.write.value("presets").toObject();
+    if (!presets.isEmpty()) {
+        const QStringList base = pathOf(entry.write.value("base").toArray());
+        QJsonObject preset = presets.value(value).toObject();
+        int size = 0, passes = 0;
+        if (!presets.contains(value) && customStrength(entry, value, &size, &passes))
+            preset = QJsonObject{{"size", size}, {"passes", passes}};
+        for (const auto &key : entry.write.value("keys").toArray()) {
+            HyprEdit edit;
+            edit.path = base + QStringList{key.toString()};
+            edit.remove = remove || !preset.contains(key.toString());
+            if (!edit.remove)
+                edit.value = preset.value(key.toString());
+            edits << edit;
+        }
+        return edits;
+    }
+    QList<QStringList> paths{pathOf(entry.write.value("path").toArray())};
+    for (const auto &also : entry.write.value("also").toArray())
+        paths << pathOf(also.toArray());
+    for (const auto &path : paths) {
+        HyprEdit edit;
+        edit.path = path;
+        edit.remove = remove;
+        if (!remove)
+            edit.value = typedValue(entry, value);
+        edits << edit;
+    }
+    return edits;
+}
+
+static bool anySet(const HyprModule &module, const CatalogEntry &entry) {
+    for (const auto &edit : hyprEdits(entry, {}, true))
+        if (module.hasOption(edit.path))
+            return true;
+    return false;
+}
+
+// Hyprland reports 0.750000 where glass.lua says 0.75; both read as 0.75.
+static QString plainNumber(const QString &text) {
+    bool ok = false;
+    const double number = text.toDouble(&ok);
+    if (!ok)
+        return text;
+    QString out = QString::number(number, 'f', 3);
+    while (out.endsWith('0'))
+        out.chop(1);
+    if (out.endsWith('.'))
+        out.chop(1);
     return out;
 }
 
@@ -268,6 +360,10 @@ void SettingsEngine::read(const QString &id, ReadCallback callback) {
         return;
     }
     const QString kind = entry->read.value("kind").toString();
+    if (kind == QLatin1String("blur") || kind == QLatin1String("blurstatus")) {
+        readBlur(entry, callback);
+        return;
+    }
     if (kind == QLatin1String("hypr")) {
         const QStringList argv = m_runner->env().hyprctl({"-j", "getoption", entry->read.value("option").toString()});
         const CatalogEntry *e = entry;
@@ -506,6 +602,11 @@ ChangePlan SettingsEngine::plan(const QString &id, const QString &rawValue, cons
         for (const auto &choice : knownChoices)
             if (choice.toMap().value("value").toString() == value)
                 known = true;
+        // A strength set through its parts reads back as "size×passes", and undo has
+        // to be able to put such a pair back.
+        int customSize = 0, customPasses = 0;
+        if (!known && customStrength(*entry, value, &customSize, &customPasses))
+            known = true;
         const bool liveList = !entry->choicesFrom.isEmpty();
         if (!known && !entry->allowCustomValue && !(liveList && knownChoices.isEmpty())) {
             plan.error = tr("That is not one of the available choices.");
@@ -561,20 +662,27 @@ ChangePlan SettingsEngine::plan(const QString &id, const QString &rawValue, cons
     }
 
     if (entry->write.value("kind").toString() == QLatin1String("hypr")) {
-        HyprModule module(m_runner->env());
+        HyprModule module(m_runner->env(), slotOf(*entry));
         plan.files << module.path();
         if (module.state() == HyprModule::ModifiedByUser) {
-            plan.error = tr("omarchy-control.lua was edited by hand, so this is paused. Edit it directly under Advanced.");
+            plan.error = tr("%1 was edited by hand, so this is paused. Edit it directly under Advanced.").arg(module.fileName());
             return plan;
         }
-        if (!module.importInstalled()) {
+        // Choosing Omarchy's own strength removes values rather than adding any, so
+        // it needs no new line in hyprland.lua.
+        bool adds = false;
+        for (const auto &edit : hyprEdits(*entry, plan.normalized, plan.normalized.isEmpty()))
+            adds = adds || !edit.remove;
+        if (adds && !module.importInstalled()) {
             if (!module.canInstallImport()) {
                 plan.error = tr("hyprland.lua does not have Omarchy's stock layout, so this can only be changed by editing it directly under Advanced.");
                 return plan;
             }
             plan.needsOwnership = true;
             plan.files << module.hyprlandPath();
-            plan.confirmText = tr("To save this, Omarchy Control adds one marked line to hyprland.lua and keeps your choices in omarchy-control.lua. It loads after your own files and before Omarchy's toggles. Nothing else in your config changes.");
+            plan.confirmText = module.slot() == HyprModule::Blur
+                ? tr("To save this, Omarchy Control adds one marked line to hyprland.lua and keeps your blur choices in omarchy-control-blur.lua. It loads after Omarchy's toggles, because Glassy sets every blur value as it loads. Nothing else in your config changes.")
+                : tr("To save this, Omarchy Control adds one marked line to hyprland.lua and keeps your choices in omarchy-control.lua. It loads after your own files and before Omarchy's toggles. Nothing else in your config changes.");
         }
     }
     plan.ok = true;
@@ -624,6 +732,112 @@ QStringList SettingsEngine::substitute(const QJsonArray &argv, const QString &va
 // The value a Hyprland option is configured to, from the files that set it rather than
 // the compositor: what this app wrote, else an uncommented assignment in the user's own
 // files, else Omarchy's default. Read as text, never run.
+void SettingsEngine::hyprOptions(const QStringList &names, std::function<void(const QHash<QString, QString> &, const QString &)> done) {
+    auto values = std::make_shared<QHash<QString, QString>>();
+    auto next = std::make_shared<std::function<void(int)>>();
+    *next = [this, names, values, done, next](int index) {
+        if (index >= names.size()) {
+            done(*values, {});
+            *next = nullptr;
+            return;
+        }
+        m_runner->run(m_runner->env().hyprctl({"-j", "getoption", names[index]}), CommandOptions{3000}, this,
+                      [values, names, index, done, next](const CommandResult &command) {
+            bool ok = false;
+            const QString value = command.ok() ? parseHyprOption(command.out, &ok) : QString();
+            if (!ok) {
+                done(*values, command.describe("Hyprland"));
+                *next = nullptr;
+                return;
+            }
+            values->insert(names[index], value);
+            (*next)(index + 1);
+        });
+    };
+    (*next)(0);
+}
+
+// Blur rows show what applies when blur is on, which is not always what Hyprland
+// holds right now: with no Glassy toggle on, Omarchy's glass values are not loaded,
+// yet they are what turning one on brings. A value chosen here is in the config
+// either way, so Hyprland's own reading is shown for it.
+void SettingsEngine::readBlur(const CatalogEntry *entry, ReadCallback callback) {
+    const bool isStatus = entry->read.value("kind").toString() == QLatin1String("blurstatus");
+    const QJsonObject presets = entry->write.value("presets").toObject();
+    QStringList keys;
+    if (!presets.isEmpty())
+        for (const auto &key : entry->write.value("keys").toArray())
+            keys << key.toString();
+    else if (!isStatus)
+        keys << entry->write.value("path").toArray().last().toString();
+    QStringList names{QStringLiteral("decoration:blur:enabled")};
+    for (const auto &key : keys)
+        names << "decoration:blur:" + key;
+    hyprOptions(names, [this, entry, isStatus, presets, keys, callback](const QHash<QString, QString> &live, const QString &error) {
+        ReadResult result;
+        if (!error.isEmpty()) {
+            result.reason = error;
+            callback(result);
+            return;
+        }
+        const Env &env = m_runner->env();
+        const Blur::Toggles toggles = Blur::toggles(env);
+        const bool enabled = live.value("decoration:blur:enabled") == QLatin1String("true");
+        if (isStatus) {
+            result.status = "ok";
+            result.value = Blur::status(toggles, enabled);
+            result.reason = Blur::statusReason(toggles, enabled);
+            result.extra.insert("enabled", enabled);
+            result.extra.insert("windows", toggles.windows);
+            result.extra.insert("bar", toggles.bar);
+            result.extra.insert("noAnimations", toggles.noAnimations);
+            callback(result);
+            return;
+        }
+        HyprModule module(env, HyprModule::Blur);
+        if (module.state() == HyprModule::ModifiedByUser) {
+            result.status = "custom";
+            result.value = live.value("decoration:blur:" + keys.value(0));
+            result.source = QCoreApplication::translate("SettingsEngine", "Custom configuration");
+            result.reason = QCoreApplication::translate("SettingsEngine", "%1 was edited by hand, so changes here are paused.").arg(module.fileName());
+            callback(result);
+            return;
+        }
+        module.load();
+        const QHash<QString, QString> glass = Blur::glassValues(env);
+        const bool glassApplies = toggles.windows || toggles.bar || !enabled;
+        const QStringList base = presets.isEmpty() ? pathOf(entry->write.value("path").toArray()).mid(0, 2) : pathOf(entry->write.value("base").toArray());
+        QHash<QString, QString> values;
+        bool fromHere = false, fromGlass = false;
+        for (const auto &key : keys) {
+            const QString now = live.value("decoration:blur:" + key);
+            if (module.hasOption(base + QStringList{key})) {
+                values.insert(key, now);
+                fromHere = true;
+            } else if (glassApplies && glass.contains(key)) {
+                values.insert(key, plainNumber(glass.value(key)));
+                fromGlass = true;
+            } else {
+                values.insert(key, now);
+            }
+        }
+        result.status = "ok";
+        result.isOverride = fromHere || anySet(module, *entry);
+        result.source = result.isOverride ? QCoreApplication::translate("SettingsEngine", "Set here")
+                        : fromGlass       ? QCoreApplication::translate("SettingsEngine", "Omarchy's glass")
+                                          : QCoreApplication::translate("SettingsEngine", "Omarchy default or your config");
+        if (!presets.isEmpty()) {
+            result.value = Blur::strengthName(presets, values.value("size"), values.value("passes"), glass);
+            result.extra.insert("size", values.value("size"));
+            result.extra.insert("passes", values.value("passes"));
+        } else {
+            result.value = values.value(keys.value(0));
+        }
+        result.extra.insert("blurOn", enabled);
+        callback(result);
+    });
+}
+
 QString SettingsEngine::configuredHyprValue(const CatalogEntry &entry, const QStringList &path, QString *source) const {
     HyprModule module(m_runner->env());
     if (module.load() && module.hasOption(path)) {
@@ -979,20 +1193,22 @@ void SettingsEngine::reloadHyprland(ChangeCoordinator::Done done, const QStringL
 
 void SettingsEngine::submitHypr(const CatalogEntry &entry, const QString &value, const QString &before, bool beforeWasDefault, bool remove,
                                 const QString &kind, ApplyCallback callback) {
-    QStringList path;
-    for (const auto &part : entry.write.value("path").toArray()) {
-        path << part.toString();
-        // Keys come from the reviewed catalog, but this file is executable Lua,
-        // so the check also sits at the point of generating it.
-        if (!HyprModule::isSafeKey(part.toString())) {
-            Transaction tx;
-            tx.phase = "failed";
-            tx.message = QStringLiteral("Unsafe option key");
-            callback(tx);
-            return;
+    const QList<HyprEdit> edits = hyprEdits(entry, value, remove);
+    for (const auto &edit : edits) {
+        for (const auto &part : edit.path) {
+            // Keys come from the reviewed catalog, but this file is executable Lua,
+            // so the check also sits at the point of generating it.
+            if (!HyprModule::isSafeKey(part)) {
+                Transaction tx;
+                tx.phase = "failed";
+                tx.message = QStringLiteral("Unsafe option key");
+                callback(tx);
+                return;
+            }
         }
     }
-    HyprModule probe(m_runner->env());
+    const HyprModule::Slot slot = slotOf(entry);
+    HyprModule probe(m_runner->env(), slot);
     ChangeCoordinator::Request request;
     request.settingId = entry.id;
     request.label = entry.label;
@@ -1002,34 +1218,49 @@ void SettingsEngine::submitHypr(const CatalogEntry &entry, const QString &value,
     request.recovery = entry.recovery;
     request.beforeWasDefault = beforeWasDefault;
     request.files << probe.path() << probe.hyprlandPath();
-    const CatalogEntry *e = &entry;
     const QString id = entry.id;
 
     auto baseline = std::make_shared<QStringList>();
-    request.apply = [this, e, path, value, remove, baseline](ChangeCoordinator::Done done) {
-        m_runner->run(m_runner->env().hyprctl({"-j", "configerrors"}), CommandOptions{3000}, this, [this, e, path, value, remove, baseline, done](const CommandResult &errors) {
+    request.apply = [this, edits, slot, baseline](ChangeCoordinator::Done done) {
+        m_runner->run(m_runner->env().hyprctl({"-j", "configerrors"}), CommandOptions{3000}, this, [this, edits, slot, baseline, done](const CommandResult &errors) {
             for (const auto &item : QJsonDocument::fromJson(errors.out).array())
                 if (!item.toString().trimmed().isEmpty())
                     baseline->append(item.toString().trimmed());
-            HyprModule module(m_runner->env());
+            HyprModule module(m_runner->env(), slot);
             QString error;
             if (!module.load(&error)) {
                 done(false, error);
                 return;
             }
-            if (remove)
-                module.removeOption(path);
-            else
-                module.setOption(path, typedValue(*e, value));
+            bool adds = false;
+            for (const auto &edit : edits) {
+                if (edit.remove)
+                    module.removeOption(edit.path);
+                else
+                    module.setOption(edit.path, edit.value);
+                adds = adds || !edit.remove;
+            }
             // Removing a value needs no new ownership. Only setting one adds the import.
-            if (!module.save(&error) || (!remove && !module.installImport(&error))) {
+            // The blur file goes altogether once nothing is chosen in it, so Omarchy's
+            // glass is back exactly as it was.
+            bool saved = false;
+            if (slot == HyprModule::Blur && module.isEmpty())
+                saved = module.removeEntirely(&error);
+            else
+                saved = module.save(&error) && (!adds || module.installImport(&error));
+            if (!saved) {
                 done(false, error);
                 return;
             }
             reloadHyprland(done, *baseline, true);
         });
     };
-    if (!remove) {
+    if (!remove && entry.write.value("presets").toObject().value(value).toObject().isEmpty() && !entry.write.value("presets").toObject().isEmpty()) {
+        // Omarchy's own strength removes values; it is confirmed by what reads back.
+        auto settled = std::make_shared<QString>();
+        request.verify = [this, id, settled](ChangeCoordinator::Done done) { confirmRead(id, settled, done); };
+        request.settled = [settled] { return *settled; };
+    } else if (!remove) {
         request.verify = [this, id, value](ChangeCoordinator::Done done) {
             verifyValue(id, value, 8, [done](bool ok, const QString &error) {
                 if (ok) {
@@ -1069,17 +1300,14 @@ void SettingsEngine::reset(const QString &id, ApplyCallback callback) {
     }
     read(id, [this, id, entry, writeKind, callback, failed](const ReadResult &current) {
         if (writeKind == QLatin1String("hypr")) {
-            HyprModule module(m_runner->env());
+            HyprModule module(m_runner->env(), slotOf(*entry));
             if (module.state() == HyprModule::ModifiedByUser) {
                 Transaction tx = failed;
-                tx.message = QCoreApplication::translate("SettingsEngine", "omarchy-control.lua was edited by hand, so it was left alone.");
+                tx.message = QCoreApplication::translate("SettingsEngine", "%1 was edited by hand, so it was left alone.").arg(module.fileName());
                 callback(tx);
                 return;
             }
-            QStringList path;
-            for (const auto &part : entry->write.value("path").toArray())
-                path << part.toString();
-            if (!module.load() || !module.hasOption(path)) {
+            if (!module.load() || !anySet(module, *entry)) {
                 // Nothing to remove, and no reason to touch the user's config.
                 Transaction tx = failed;
                 tx.message = QCoreApplication::translate("SettingsEngine", "This is already using the default.");

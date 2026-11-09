@@ -254,6 +254,51 @@ try:
     errors = json.loads(run("hyprctl", "-j", "configerrors").stdout)
     check("no Hyprland config errors from anything above", not [e for e in errors if e.strip()], str(errors)[:300])
 
+    # Blur. Omarchy's Glassy toggle loads glass.lua with the toggles, after the main owned
+    # file, so choices here go in a second file that loads after them, and must win.
+    def blur(option):
+        return json.loads(run("hyprctl", "-j", "getoption", "decoration:blur:" + option).stdout or "{}")
+    blur_file = H + "/.config/hypr/omarchy-control-blur.lua"
+    lua_before = open(H + "/.config/hypr/hyprland.lua").read()
+    glassy = json.loads(app("apply", "appearance.transparency", "glassy", "--yes").stdout or "{}")
+    check("Glassy windows turn real blur on with Omarchy's glass", glassy.get("phase") == "committed" and blur("enabled").get("bool") is True and blur("size").get("int") == 4,
+          f"{glassy.get('phase')} enabled={blur('enabled')} size={blur('size')}")
+    check("the blur status says Glassy windows", get("appearance.blur.status") == "windows", str(get("appearance.blur.status")))
+    strong = json.loads(app("apply", "appearance.blur.strength", "strong", "--yes").stdout or "{}")
+    lua = open(H + "/.config/hypr/hyprland.lua").read()
+    check("a blur choice beats Omarchy's glass in real Hyprland", strong.get("phase") == "committed" and blur("size").get("int") == 6 and blur("passes").get("int") == 3,
+          f"{strong.get('phase')}: {strong.get('message')} size={blur('size')} passes={blur('passes')}")
+    check("the blur import is one marked line after the toggles", lua.count("hypr.omarchy-control-blur") == 1 and lua.index("default.hypr.toggles") < lua.index("hypr.omarchy-control-blur"))
+    for sid, value, option, expected in (
+            ("appearance.blur.size", "9", "size", 9), ("appearance.blur.passes", "4", "passes", 4),
+            ("appearance.blur.brightness", "0.5", "brightness", 0.5), ("appearance.blur.contrast", "1.3", "contrast", 1.3),
+            ("appearance.blur.vibrancy", "0.6", "vibrancy_darkness", 0.6), ("appearance.blur.noise", "0.05", "noise", 0.05),
+            ("appearance.blur.popups", "false", "popups", False), ("appearance.blur.special", "false", "special", False), ("appearance.blur.xray", "true", "xray", True)):
+        before = get(sid)
+        tx = json.loads(app("apply", sid, value, "--yes").stdout or "{}")
+        live = next(iter(v for k, v in blur(option).items() if k in ("int", "float", "bool")), None)
+        live_ok = live == expected if isinstance(expected, bool) else live is not None and abs(live - expected) < 0.001
+        undone = json.loads(app("undo", tx["id"]).stdout or "{}") if tx.get("id") else {}
+        ok = tx.get("phase") == "committed" and live_ok and undone.get("phase") == "committed" and get(sid) == before
+        check(sid, ok, f"{tx.get('phase')}: {tx.get('message')} live={live} undo={undone.get('phase')} back={get(sid)} before={before}")
+        if ok:
+            verified.append(sid)
+    if strong.get("id"):
+        undone = json.loads(app("undo", strong["id"]).stdout or "{}")
+        ok = undone.get("phase") == "committed" and blur("size").get("int") == 4 and not os.path.exists(blur_file) and open(H + "/.config/hypr/hyprland.lua").read() == lua_before
+        check("undoing the last blur choice brings Omarchy's glass back and removes the file and its line", ok, f"undo={undone.get('phase')} size={blur('size')}")
+        if ok:
+            verified.append("appearance.blur.strength")
+    # Omarchy loads toggles in name order, so Glassy windows, loading after no-animations,
+    # keep their blur. The status row says so; this confirms it on real Hyprland.
+    still = json.loads(app("apply", "appearance.animations", "false", "--yes").stdout or "{}")
+    check("Glassy windows keep their blur with Animations and blur off", still.get("phase") == "committed" and blur("enabled").get("bool") is True and get("appearance.blur.status") == "windows")
+    if still.get("id"):
+        app("undo", still["id"])
+    if glassy.get("id"):
+        app("undo", glassy["id"])
+    check("blur is off again once Glassy windows are", blur("enabled").get("bool") is False and get("appearance.blur.status") == "off")
+
     # Worth trying where the nested session allows it, but not a failure if it does not.
     for sid, value in (("input.touchpad", "false"), ("displays.nightlight", "true"), ("system.language", "de")):
         before = get(sid)

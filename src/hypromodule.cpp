@@ -10,14 +10,32 @@
 static const char Header[] = "-- Managed by Omarchy Control. Edits here are detected and never overwritten;\n"
                              "-- remove this file's require line from hyprland.lua to take over by hand.\n";
 static const char DataPrefix[] = "-- omarchy-control-data: ";
-static const char ImportLine[] = "require(\"hypr.omarchy-control\") -- Managed by Omarchy Control; loads your choices made there.";
 
-HyprModule::HyprModule(const Env &env) : m_env(env) {
+HyprModule::HyprModule(const Env &env, Slot slot) : m_env(env), m_slot(slot) {
     m_data = QJsonObject{{"options", QJsonObject{}}, {"monitors", QJsonArray{}}, {"binds", QJsonArray{}}};
 }
 
+QString HyprModule::fileName() const {
+    return m_slot == Blur ? QStringLiteral("omarchy-control-blur.lua") : QStringLiteral("omarchy-control.lua");
+}
+
 QString HyprModule::path() const {
-    return m_env.configHome + "/hypr/omarchy-control.lua";
+    return m_env.configHome + "/hypr/" + fileName();
+}
+
+// The whole require call, quotes and parenthesis included, so neither file's line is
+// ever taken for the other's.
+QByteArray HyprModule::requireText() const {
+    return m_slot == Blur ? QByteArray("require(\"hypr.omarchy-control-blur\")") : QByteArray("require(\"hypr.omarchy-control\")");
+}
+
+QByteArray HyprModule::anchorText() const {
+    return m_slot == Blur ? QByteArray("require(\"default.hypr.toggles\")") : QByteArray("require(\"hypr.autostart\")");
+}
+
+QByteArray HyprModule::importLine() const {
+    return requireText() + (m_slot == Blur ? QByteArray(" -- Managed by Omarchy Control; your blur choices, after Omarchy's toggles.")
+                                           : QByteArray(" -- Managed by Omarchy Control; loads your choices made there."));
 }
 
 QString HyprModule::hyprlandPath() const {
@@ -108,6 +126,8 @@ QByteArray HyprModule::render() const {
         QString props;
         if (action == QLatin1String("float") || action == QLatin1String("tile"))
             props = action + " = true";
+        else if (action == QLatin1String("noblur"))
+            props = "no_blur = true";
         else if (action == QLatin1String("workspace"))
             props = "workspace = " + luaString(rule.value("value").toString());
         else if (action == QLatin1String("opacity"))
@@ -143,7 +163,7 @@ HyprModule::State HyprModule::state() const {
     const auto document = QJsonDocument::fromJson(contents.mid(start, end - start));
     if (!document.isObject())
         return ModifiedByUser;
-    HyprModule copy(m_env);
+    HyprModule copy(m_env, m_slot);
     copy.m_data = document.object();
     return copy.render() == contents ? Ours : ModifiedByUser;
 }
@@ -154,7 +174,7 @@ bool HyprModule::load(QString *error) {
         return true;
     if (current == ModifiedByUser) {
         if (error)
-            *error = QObject::tr("omarchy-control.lua was edited outside Omarchy Control, so it was left alone.");
+            *error = QObject::tr("%1 was edited outside Omarchy Control, so it was left alone.").arg(fileName());
         return false;
     }
     QByteArray contents;
@@ -203,27 +223,42 @@ bool HyprModule::hasOption(const QStringList &path) const {
     return !option(path).isUndefined();
 }
 
+bool HyprModule::isEmpty() const {
+    return options().isEmpty() && monitors().isEmpty() && binds().isEmpty() && rules().isEmpty();
+}
+
+bool HyprModule::removeEntirely(QString *error) {
+    if (importInstalled() && !removeImport(error))
+        return false;
+    if (QFileInfo::exists(path()) && !QFile::remove(path())) {
+        if (error)
+            *error = QObject::tr("%1 could not be removed.").arg(fileName());
+        return false;
+    }
+    return true;
+}
+
 bool HyprModule::save(QString *error) {
     return FileOps::atomicWrite(path(), render(), error, 0644);
 }
 
 bool HyprModule::importInstalled() const {
     QByteArray contents;
-    return FileOps::readFile(hyprlandPath(), &contents) && contents.contains("require(\"hypr.omarchy-control\")");
+    return FileOps::readFile(hyprlandPath(), &contents) && contents.contains(requireText());
 }
 
 bool HyprModule::canInstallImport() const {
     QByteArray contents;
-    return FileOps::readFile(hyprlandPath(), &contents) && contents.contains("require(\"hypr.autostart\")");
+    return FileOps::readFile(hyprlandPath(), &contents) && contents.contains(anchorText());
 }
 
 bool HyprModule::installImport(QString *error) {
     QByteArray contents;
     if (!FileOps::readFile(hyprlandPath(), &contents, error))
         return false;
-    if (contents.contains("require(\"hypr.omarchy-control\")"))
+    if (contents.contains(requireText()))
         return true;
-    const QByteArray anchor = "require(\"hypr.autostart\")";
+    const QByteArray anchor = anchorText();
     const int at = contents.indexOf(anchor);
     if (at < 0) {
         if (error)
@@ -235,7 +270,7 @@ bool HyprModule::installImport(QString *error) {
     if (!QFileInfo::exists(path()) && !save(error))
         return false;
     const int lineEnd = contents.indexOf('\n', at);
-    contents.insert(lineEnd < 0 ? contents.size() : lineEnd, QByteArray("\n") + ImportLine);
+    contents.insert(lineEnd < 0 ? contents.size() : lineEnd, QByteArray("\n") + importLine());
     return FileOps::atomicWrite(hyprlandPath(), contents, error, 0644);
 }
 
@@ -245,7 +280,7 @@ bool HyprModule::removeImport(QString *error) {
         return false;
     QList<QByteArray> kept;
     for (const QByteArray &line : contents.split('\n'))
-        if (!line.contains("require(\"hypr.omarchy-control\")"))
+        if (!line.contains(requireText()))
             kept << line;
     return FileOps::atomicWrite(hyprlandPath(), kept.join('\n'), error, 0644);
 }

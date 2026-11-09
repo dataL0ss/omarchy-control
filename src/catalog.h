@@ -34,6 +34,9 @@ struct CatalogEntry {
     QJsonObject link;
     // How each status value reads at a glance: "good", "neutral", "danger", or "muted".
     QJsonObject tones;
+    // Rows of the same section kept behind this one until opened, as a strength keeps
+    // its finer parts. Search and the CLI still reach them directly.
+    QStringList discloses;
 
     bool isAction() const { return type == QLatin1String("action"); }
     bool isSetting() const { return !isAction(); }

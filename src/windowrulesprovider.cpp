@@ -31,7 +31,7 @@ QString WindowRulesProvider::validate(const QString &match, const QString &actio
         return tr("That is not a valid pattern.");
     static const QRegularExpression workspace("^([0-9]{1,3}|special(:[A-Za-z0-9_-]{1,32})?)$");
     static const QRegularExpression opacity("^(0(\\.[0-9]{1,3})?|1(\\.0{1,3})?)( (0(\\.[0-9]{1,3})?|1(\\.0{1,3})?))?$");
-    if (action == QLatin1String("float") || action == QLatin1String("tile"))
+    if (action == QLatin1String("float") || action == QLatin1String("tile") || action == QLatin1String("noblur"))
         return {};
     if (action == QLatin1String("workspace"))
         return workspace.match(value).hasMatch() ? QString() : tr("Enter a workspace number.");
