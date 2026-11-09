@@ -1,6 +1,6 @@
 # Omarchy Control — implementation plan
 
-Status: P0–P5 implemented, with 50 of 65 writable settings, display recovery, and the real window verified on real Hyprland and the real shell in an isolated nested session. No write has been made on a real desktop session yet. See [LIVE-CHECKS.md](LIVE-CHECKS.md). Baseline: local machine, November 5, 2026.
+Status: P0–P5 implemented, with 50 of 66 writable settings, display recovery, and the real window verified on real Hyprland and the real shell in an isolated nested session. No write has been made on a real desktop session yet. See [LIVE-CHECKS.md](LIVE-CHECKS.md). Baseline: local machine, November 5, 2026.
 
 ## 1. Product direction
 
