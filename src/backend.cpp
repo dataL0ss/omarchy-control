@@ -386,7 +386,9 @@ void Backend::pageShown(const QString &page) {
         m_audio.refresh();
         m_network.refresh();
     }
-    if (page == QLatin1String("sound"))
+    // The Overview has a Bluetooth switch too, and without a read of its own it would
+    // say off until the Sound page had been opened.
+    if (page == QLatin1String("sound") || page == QLatin1String("overview"))
         m_bluetooth.refresh();
     // Also runs on returning to the window, which is how a finished update gets noticed.
     if (page == QLatin1String("about"))

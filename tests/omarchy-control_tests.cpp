@@ -4448,6 +4448,19 @@ esac
         QVERIFY(FileOps::atomicWrite(config, "{\"idle\":{\"lock\":900}}"));
         QTRY_COMPARE_WITH_TIMEOUT(value(), QString("900"), 5000);
     }
+    void theOverviewReadsWhetherBluetoothIsOn() {
+        Sandbox s;
+        fakeDesktop(s);
+        s.omarchy(R"SH(case "$*" in "bluetooth power is-on") exit 0;; esac; exit 0)SH");
+        s.command("bluetoothctl", "exit 0");
+        Backend backend(s.env);
+        QCOMPARE(backend.bluetooth()->status(), QString("loading"));
+        QVERIFY(!backend.bluetooth()->powered());
+        // Without ever visiting the Sound page.
+        backend.pageShown("overview");
+        QTRY_COMPARE_WITH_TIMEOUT(backend.bluetooth()->status(), QString("ok"), 5000);
+        QVERIFY(backend.bluetooth()->powered());
+    }
     void theOwnershipPromptGuardsTheFirstWrite() {
         Sandbox s;
         fakeDesktop(s);

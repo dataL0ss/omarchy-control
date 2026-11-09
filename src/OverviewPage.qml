@@ -204,6 +204,8 @@ ScrollView {
                                 label: qsTr("Bluetooth")
                                 on: parent.parent.bt.powered
                                 busy: parent.parent.bt.busy
+                                // Not yet read is not the same as off.
+                                unknown: parent.parent.bt.status === "loading"
                                 enabled: parent.parent.adapter && !parent.parent.bt.busy && parent.parent.bt.status === "ok"
                                 onClicked: parent.parent.bt.setPowered(!on)
                             }
